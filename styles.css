@@ -22,9 +22,11 @@ h1 { margin: 0; font-family: "Songti SC", "Nanum Myeongjo", serif; font-size: cl
 .viewer[hidden] { display: none; }
 #oracle-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .video-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to bottom, rgba(5,3,4,.65), transparent 26%, transparent 53%, rgba(4,2,3,.44) 100%); }
-.viewer-header { position: absolute; z-index: 1; top: max(22px, env(safe-area-inset-top)); left: 22px; right: 64px; display: flex; flex-direction: column; gap: 7px; color: #fbede0; font-size: 13px; text-shadow: 0 1px 5px #000; }
+.viewer-header { position: absolute; z-index: 1; top: max(22px, env(safe-area-inset-top)); left: 22px; right: 64px; display: flex; flex-direction: column; gap: 4px; color: #fbede0; text-shadow: 0 1px 5px #000; }
 .live-dot { color: #f5ca87; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
 .live-dot::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #ef785c; vertical-align: 1px; box-shadow: 0 0 9px #ef785c; }
+#viewer-name { margin-top: 3px; font-size: 23px; line-height: 1.1; letter-spacing: -.05em; }
+#place-name { color: #f2d3a3; font-size: 15px; font-weight: 700; letter-spacing: -.03em; }
 .close-button { position: absolute; z-index: 2; top: max(18px, env(safe-area-inset-top)); right: 18px; width: 39px; height: 39px; border: 1px solid rgba(255,255,255,.5); border-radius: 50%; color: #fff; background: rgba(10,5,7,.38); font-size: 27px; line-height: 30px; cursor: pointer; }
 .caption { position: absolute; z-index: 1; left: 24px; right: 24px; bottom: 31%; margin: 0; color: #fffdf8; text-align: center; font-size: clamp(21px, 5.7vw, 28px); font-weight: 800; line-height: 1.45; letter-spacing: -.045em; text-shadow: 0 2px 3px #12090c, 0 0 15px #12090c; transition: opacity .12s ease; }
 .caption:empty { opacity: 0; }
