@@ -7,7 +7,9 @@
 ## Local preview
 
 ```sh
-python3 -m http.server 4173
+npm run dev
 ```
 
-그다음 `http://localhost:4173`을 엽니다.
+그다음 `http://localhost:4173`을 엽니다. `.env.example`을 `.env`로 복사하고 API 키를 넣으면 mock 대신 GPT-5 mini와 ElevenLabs를 호출합니다. 키가 없으면 개발용 mock 응답으로 입력·재생 흐름을 확인할 수 있습니다.
+
+GitHub Pages는 정적 화면만 제공하므로 실제 API 생성 기능은 별도 Node 서버에 배포한 뒤 프런트엔드의 API 주소를 연결해야 합니다.

@@ -1,0 +1,9 @@
+{
+  "name": "pungsudosa-mvp-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.js",
+    "start": "node server/index.js"
+  }
+}
