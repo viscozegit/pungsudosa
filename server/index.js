@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const port = Number(process.env.PORT || 4173);
-const mockMode = process.env.MOCK_MODE !== "false" || !process.env.OPENAI_API_KEY || !process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_VOICE_ID;
+const mockMode = process.env.MOCK_MODE !== "false" || !process.env.OPENROUTER_API_KEY || !process.env.ELEVENLABS_API_KEY || !process.env.ELEVENLABS_VOICE_ID;
 
 const headers = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type", "access-control-allow-methods": "GET,POST,OPTIONS" };
 const send = (res, status, body, type = "application/json; charset=utf-8") => { res.writeHead(status, { ...headers, "content-type": type }); res.end(type.startsWith("application/json") ? JSON.stringify(body) : body); };
@@ -34,7 +34,7 @@ function validate(input) {
 async function generateNarration(person) {
   const system = `당신은 카메라 앞에서 한 사람에게 직접 말하는 젊은 한국 여성 도사다. 입력한 이름과 주소를 바탕으로 35~45초 분량의 자연스러운 한국어 나레이션을 작성한다. 보고서나 목록이 아니라 호기심을 이어가는 구어체로 말한다. 이름은 1~2회 자연스럽게 부르고, 장소는 주소의 지역과 장소로 지칭한다. 하나의 핵심 판정으로 끝낸다. 반드시 JSON으로만 반환하며 narration 문자열 하나만 포함한다.`;
   const user = JSON.stringify(person);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "content-type": "application/json" }, body: JSON.stringify({ model: "gpt-5-mini", temperature: 0.9, messages: [{ role: "system", content: system }, { role: "user", content: user }], response_format: { type: "json_schema", json_schema: { name: "pungsu_narration", strict: true, schema: { type: "object", properties: { narration: { type: "string", minLength: 1 } }, required: ["narration"], additionalProperties: false } } } }) });
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, "content-type": "application/json", "http-referer": "https://viscozegit.github.io/pungsudosa/", "x-title": "Pungsudosa MVP" }, body: JSON.stringify({ model: process.env.LLM_MODEL || "deepseek/deepseek-v4-flash", temperature: 0.9, messages: [{ role: "system", content: system }, { role: "user", content: user }], response_format: { type: "json_schema", json_schema: { name: "pungsu_narration", strict: true, schema: { type: "object", properties: { narration: { type: "string", minLength: 1 } }, required: ["narration"], additionalProperties: false } } } }) });
   if (!response.ok) throw new Error(`llm_${response.status}`);
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
