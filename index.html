@@ -11,18 +11,17 @@
     <main class="app-shell">
       <section class="home" id="home" aria-labelledby="page-title">
         <div class="moon" aria-hidden="true"></div>
+        <div class="form-topbar"><button type="button" class="back-button" aria-label="뒤로">‹</button><span>풍수도사</span></div>
         <p class="eyebrow">사주 × 풍수 장소 궁합</p>
-        <h1 id="page-title">풍수도사</h1>
-        <p class="intro">사람의 기운과 이 자리가<br />만나면 어떤 일이 생길까.</p>
+        <h1 id="page-title">나의 사주와<br />이 자리의 이야기</h1>
 
         <form class="profile-form" id="reading-form">
-          <label>이름<input id="name" name="name" autocomplete="name" placeholder="이름을 입력해 주세요" maxlength="30" required /></label>
-          <div class="form-row">
-            <label>생년월일<input id="birth-date" name="birthDate" type="date" required /></label>
-            <label>출생시간<span class="optional">선택</span><input id="birth-time" name="birthTime" type="time" /></label>
-          </div>
+          <label>이름<input id="name" name="name" autocomplete="name" placeholder="이름을 입력해 주세요 (최대 4글자)" maxlength="4" required /></label>
+          <div class="input-with-options"><input id="birth-date-input" name="birthDateInput" inputmode="numeric" autocomplete="bday" aria-label="생년월일" placeholder="생년월일 0000.00.00" maxlength="10" required /><div class="inline-options"><label class="date-type"><input type="radio" name="calendarType" checked /> 양력</label><label class="date-type"><input type="radio" name="calendarType" /> 음력</label></div></div>
+          <div class="input-with-options"><input id="birth-time-input" name="birthTimeInput" inputmode="numeric" autocomplete="off" aria-label="태어난 시간" placeholder="태어난 시간 (예: 13:20)" maxlength="5" /><label class="check-line"><input id="unknown-time" type="checkbox" /> 시간 모름</label></div>
+          <fieldset class="gender-field"><legend>성별</legend><div class="gender-buttons"><button type="button" class="gender-button" data-gender="male">남성</button><button type="button" class="gender-button" data-gender="female">여성</button></div></fieldset>
           <label>궁금한 장소<input id="address" name="address" autocomplete="street-address" placeholder="주소를 입력해 주세요" maxlength="200" required /></label>
-          <button class="submit-button" type="submit">이 자리와 나의 궁합 보기 <span>→</span></button>
+          <button class="submit-button" type="submit">다 입력했어요!</button>
           <p class="form-error" id="form-error" role="alert"></p>
         </form>
         <div class="loading" id="loading" hidden>

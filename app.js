@@ -13,6 +13,16 @@ const playToggle = document.querySelector("#play-toggle");
 let cueTimes = [];
 let videoIndex = 0;
 let controlsTimer;
+let selectedGender = null;
+
+function parseBirthDateTime(dateValue, timeValue, unknownTime) {
+  const dateDigits = dateValue.replace(/\D/g, "");
+  if (dateDigits.length < 8) return null;
+  const birthDate = `${dateDigits.slice(0, 4)}-${dateDigits.slice(4, 6)}-${dateDigits.slice(6, 8)}`;
+  const timeDigits = timeValue.replace(/\D/g, "");
+  const birthTime = unknownTime || timeDigits.length < 4 ? null : `${timeDigits.slice(0, 2)}:${timeDigits.slice(2, 4)}`;
+  return { birthDate, birthTime };
+}
 
 function updateCaption() {
   const cue = cueTimes.find(({ start, end }) => audio.currentTime >= start && audio.currentTime < end);
@@ -64,8 +74,9 @@ function startViewer(reading, person) {
 form.addEventListener("submit", async event => {
   event.preventDefault();
   formError.textContent = "";
-  const person = { name: form.name.value.trim(), birthDate: form.birthDate.value, birthTime: form.birthTime.value || null, address: form.address.value.trim() };
-  if (!person.name || !person.birthDate || !person.address) { formError.textContent = "이름, 생년월일, 주소를 입력해 주세요."; return; }
+  const parsedBirth = parseBirthDateTime(form.birthDateInput.value, form.birthTimeInput.value, document.querySelector("#unknown-time").checked);
+  const person = { name: form.name.value.trim(), ...parsedBirth, address: form.address.value.trim(), gender: selectedGender };
+  if (!person.name || !parsedBirth || !person.address) { formError.textContent = "이름, 생년월일, 주소를 입력해 주세요."; return; }
   form.querySelector("button[type=submit]").disabled = true;
   loading.hidden = false;
   try {
@@ -77,6 +88,30 @@ form.addEventListener("submit", async event => {
     loading.hidden = true;
     formError.textContent = error.message || "나레이션을 준비하지 못했어요. 다시 시도해 주세요.";
   } finally { form.querySelector("button[type=submit]").disabled = false; }
+});
+document.querySelectorAll(".gender-button").forEach(button => button.addEventListener("click", () => {
+  document.querySelectorAll(".gender-button").forEach(item => item.classList.remove("selected"));
+  button.classList.add("selected");
+  selectedGender = button.dataset.gender;
+}));
+document.querySelector("#unknown-time").addEventListener("change", event => {
+  const input = document.querySelector("#birth-time-input");
+  input.disabled = event.target.checked;
+  input.placeholder = event.target.checked ? "시간을 입력하지 않음" : "태어난 시간 입력 (예: 13:20)";
+});
+document.querySelector("#birth-date-input").addEventListener("input", event => {
+  const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+  let formatted = digits;
+  if (digits.length > 4) formatted = `${digits.slice(0, 4)}.${digits.slice(4)}`;
+  if (digits.length > 6) formatted = `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6)}`;
+  event.target.value = formatted;
+  if (digits.length === 8) document.querySelector("#birth-time-input").focus();
+});
+document.querySelector("#birth-time-input").addEventListener("input", event => {
+  const digits = event.target.value.replace(/\D/g, "").slice(0, 12);
+  let formatted = digits;
+  if (digits.length > 2) formatted = `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  event.target.value = formatted;
 });
 audio.addEventListener("timeupdate", updateCaption);
 audio.addEventListener("ended", () => { caption.textContent = ""; video.pause(); });
