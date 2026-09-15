@@ -11,21 +11,21 @@
     <main class="app-shell">
       <section class="home" id="home" aria-labelledby="page-title">
         <div class="moon" aria-hidden="true"></div>
+        <div class="form-topbar"><button type="button" class="back-button" aria-label="뒤로">‹</button><span>풍수도사</span></div>
         <p class="eyebrow">사주 × 풍수 장소 궁합</p>
-        <h1 id="page-title">풍수도사</h1>
-        <p class="intro">사람의 기운과 이 자리가<br />만나면 어떤 일이 생길까.</p>
+        <h1 id="page-title">나의 사주와<br />이 자리의 이야기</h1>
 
-        <article class="profile" aria-label="상담 대상 정보">
-          <span class="profile-label">상담 대상</span>
-          <strong>김현경</strong>
-          <span>1985.01.02 &nbsp;·&nbsp; 00:00</span>
-        </article>
-
-        <div class="place-list" aria-label="장소 선택">
-          <p>어느 자리를 볼까요?</p>
-          <button class="place-button" data-place="ipark"><span>01</span>부천 아이파크2단지 <i>→</i></button>
-          <button class="place-button" data-place="buillo"><span>02</span>상동 부일로 <i>→</i></button>
-          <button class="place-button" data-place="sinjungdong"><span>03</span>신중동 푸르지오시티 <i>→</i></button>
+        <form class="profile-form" id="reading-form">
+          <label>이름<input id="name" name="name" autocomplete="name" placeholder="이름을 입력해 주세요 (최대 4글자)" maxlength="4" required /></label>
+          <div class="input-with-options"><input id="birth-date-input" name="birthDateInput" inputmode="numeric" autocomplete="bday" aria-label="생년월일" placeholder="생년월일 0000.00.00" maxlength="10" required /><div class="inline-options"><label class="date-type"><input type="radio" name="calendarType" checked /> 양력</label><label class="date-type"><input type="radio" name="calendarType" /> 음력</label></div></div>
+          <div class="input-with-options"><input id="birth-time-input" name="birthTimeInput" inputmode="numeric" autocomplete="off" aria-label="태어난 시간" placeholder="태어난 시간 (예: 13:20)" maxlength="5" /><label class="check-line"><input id="unknown-time" type="checkbox" /> 시간 모름</label></div>
+          <fieldset class="gender-field"><legend>성별</legend><div class="gender-buttons"><button type="button" class="gender-button" data-gender="male">남성</button><button type="button" class="gender-button" data-gender="female">여성</button></div></fieldset>
+          <label>궁금한 장소<input id="address" name="address" autocomplete="street-address" placeholder="주소를 입력해 주세요" maxlength="200" required /></label>
+          <button class="submit-button" type="submit">다 입력했어요!</button>
+          <p class="form-error" id="form-error" role="alert"></p>
+        </form>
+        <div class="loading" id="loading" hidden>
+          <span class="loading-orb"></span><p>도사가 이야기를<br />준비하고 있어요</p>
         </div>
       </section>
 
