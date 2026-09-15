@@ -1,10 +1,10 @@
-const videos = ["assets/video_01.mp4", "assets/video_02.mp4", "assets/video_03.mp4"];
+const videos = ["assets/video_01.mp4", "assets/video_02.mp4"];
 const home = document.querySelector("#home");
 const loading = document.querySelector("#loading");
 const form = document.querySelector("#reading-form");
 const formError = document.querySelector("#form-error");
 const viewer = document.querySelector("#viewer");
-const video = document.querySelector("#oracle-video");
+const videoLayers = [...document.querySelectorAll(".oracle-video")];
 const audio = document.querySelector("#narration");
 const caption = document.querySelector("#caption");
 const viewerName = document.querySelector("#viewer-name");
@@ -12,6 +12,8 @@ const placeName = document.querySelector("#place-name");
 const playToggle = document.querySelector("#play-toggle");
 let cueTimes = [];
 let videoIndex = 0;
+let activeVideo = videoLayers[0];
+let videoTransitionTimer;
 let controlsTimer;
 let selectedGender = null;
 
@@ -37,19 +39,52 @@ function setPaused(paused) {
   viewer.classList.toggle("is-paused", paused);
   playToggle.setAttribute("aria-pressed", String(paused));
   playToggle.setAttribute("aria-label", paused ? "재생" : "일시정지");
-  if (paused) { audio.pause(); video.pause(); showControls(); return; }
+  if (paused) { audio.pause(); activeVideo.pause(); showControls(); return; }
   audio.play().catch(() => showControls());
-  video.play().catch(() => showControls());
+  activeVideo.play().catch(() => showControls());
   showControls();
 }
+function standbyVideo() {
+  return videoLayers.find(item => item !== activeVideo);
+}
+function loadVideo(videoElement, index) {
+  if (videoElement.dataset.videoIndex === String(index)) return;
+  videoElement.pause();
+  videoElement.src = videos[index];
+  videoElement.dataset.videoIndex = String(index);
+  videoElement.load();
+}
+function preloadNextVideo() {
+  loadVideo(standbyVideo(), (videoIndex + 1) % videos.length);
+}
 function playNextVideo() {
-  videoIndex = (videoIndex + 1) % videos.length;
-  video.src = videos[videoIndex];
-  video.play().catch(() => {});
+  if (audio.paused || audio.ended) return;
+  const nextIndex = (videoIndex + 1) % videos.length;
+  const nextVideo = standbyVideo();
+  const beginTransition = () => {
+    if (audio.paused || audio.ended) return;
+    nextVideo.currentTime = 0;
+    nextVideo.play().then(() => {
+      activeVideo.classList.remove("is-active");
+      nextVideo.classList.add("is-active");
+      activeVideo = nextVideo;
+      videoIndex = nextIndex;
+      clearTimeout(videoTransitionTimer);
+      videoTransitionTimer = setTimeout(preloadNextVideo, 380);
+    }).catch(() => showControls());
+  };
+  if (nextVideo.dataset.videoIndex !== String(nextIndex)) loadVideo(nextVideo, nextIndex);
+  if (nextVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) beginTransition();
+  else nextVideo.addEventListener("canplay", beginTransition, { once: true });
 }
 function resetViewer() {
   audio.pause(); audio.removeAttribute("src"); audio.load();
-  video.pause(); video.removeAttribute("src"); video.load();
+  clearTimeout(videoTransitionTimer);
+  videoLayers.forEach((item, index) => {
+    item.pause(); item.removeAttribute("src"); item.removeAttribute("data-video-index"); item.load();
+    item.classList.toggle("is-active", index === 0);
+  });
+  activeVideo = videoLayers[0];
   caption.textContent = ""; cueTimes = [];
   viewer.classList.remove("is-paused", "controls-visible");
   clearTimeout(controlsTimer);
@@ -59,7 +94,11 @@ function startViewer(reading, person) {
   placeName.textContent = person.address;
   cueTimes = Array.isArray(reading.cues) ? reading.cues : [];
   videoIndex = 0;
-  video.src = videos[videoIndex];
+  activeVideo = videoLayers[0];
+  activeVideo.classList.add("is-active");
+  standbyVideo().classList.remove("is-active");
+  loadVideo(activeVideo, videoIndex);
+  preloadNextVideo();
   if (reading.audioBase64) audio.src = `data:${reading.audioMimeType || "audio/mpeg"};base64,${reading.audioBase64}`;
   else if (reading.audioUrl) audio.src = reading.audioUrl;
   else throw new Error("audio_missing");
@@ -68,7 +107,7 @@ function startViewer(reading, person) {
   loading.hidden = true;
   audio.onloadedmetadata = updateCaption;
   audio.play().catch(() => showControls());
-  video.play().catch(() => showControls());
+  activeVideo.play().catch(() => showControls());
   showControls();
 }
 form.addEventListener("submit", async event => {
@@ -114,8 +153,10 @@ document.querySelector("#birth-time-input").addEventListener("input", event => {
   event.target.value = formatted;
 });
 audio.addEventListener("timeupdate", updateCaption);
-audio.addEventListener("ended", () => { caption.textContent = ""; video.pause(); });
-video.addEventListener("ended", () => { if (!audio.paused && !audio.ended) playNextVideo(); });
+audio.addEventListener("ended", () => { caption.textContent = ""; activeVideo.pause(); });
+videoLayers.forEach(item => {
+  item.addEventListener("ended", () => { if (item === activeVideo) playNextVideo(); });
+  item.addEventListener("click", () => setPaused(!viewer.classList.contains("is-paused")));
+});
 playToggle.addEventListener("click", event => { event.stopPropagation(); setPaused(!viewer.classList.contains("is-paused")); });
-video.addEventListener("click", () => setPaused(!viewer.classList.contains("is-paused")));
 document.querySelector("#close-button").addEventListener("click", () => { resetViewer(); viewer.hidden = true; home.hidden = false; });
