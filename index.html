@@ -14,7 +14,13 @@
         <div class="form-topbar"><button type="button" class="back-button" aria-label="뒤로">‹</button><span>풍수도사</span></div>
         <p class="eyebrow">사주 × 풍수 장소 궁합</p>
         <h1 id="page-title">나의 사주와<br />이 자리의 이야기</h1>
-
+        <section class="oracle-picker" aria-label="상담 도사 선택">
+          <p>오늘의 도사를 골라주세요</p>
+          <div class="oracle-options">
+            <button class="oracle-option selected" type="button" data-oracle="shaman" aria-pressed="true"><img src="assets/character-shaman.jpg" alt="여자 무당 캐릭터" /><span>무당님</span></button>
+            <button class="oracle-option" type="button" data-oracle="dog" aria-pressed="false"><img src="assets/character-dog.jpg" alt="강아지 무당 캐릭터" /><span>강아지 도사</span></button>
+          </div>
+        </section>
         <form class="profile-form" id="reading-form">
           <label>이름<input id="name" name="name" autocomplete="name" placeholder="이름을 입력해 주세요 (최대 4글자)" maxlength="4" required /></label>
           <div class="input-with-options"><input id="birth-date-input" name="birthDateInput" inputmode="numeric" autocomplete="bday" aria-label="생년월일" placeholder="생년월일 0000.00.00" maxlength="10" required /><div class="inline-options"><label class="date-type"><input type="radio" name="calendarType" checked /> 양력</label><label class="date-type"><input type="radio" name="calendarType" /> 음력</label></div></div>
@@ -25,7 +31,7 @@
           <p class="form-error" id="form-error" role="alert"></p>
         </form>
         <div class="loading" id="loading" hidden>
-          <span class="loading-orb"></span><p>도사가 이야기를<br />준비하고 있어요</p>
+          <span class="loading-orb"></span><p id="loading-message">도사가 이야기를<br />준비하고 있어요</p><strong id="loading-percent">0%</strong>
         </div>
       </section>
 
@@ -44,6 +50,7 @@
           <span class="play-icon" aria-hidden="true"></span>
           <span class="toggle-label">일시정지</span>
         </button>
+        <button id="replay-button" class="replay-button" type="button" hidden>처음부터 다시 듣기</button>
         <button id="close-button" class="close-button" type="button" aria-label="상담 닫기">×</button>
         <div class="sound-indicator"><span></span><span></span><span></span> 도사의 말</div>
         <audio id="narration" preload="auto"></audio>
