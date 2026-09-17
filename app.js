@@ -2,6 +2,7 @@ const oracleVideos = {
   shaman: ["assets/video_01.mp4", "assets/video_02.mp4", "assets/video_03.mp4"],
   dog: ["assets/video_dog.mp4"]
 };
+const API_BASE = window.location.hostname === "localhost" ? "" : "https://pungsudosa-api.behindvis.workers.dev";
 let videos = oracleVideos.shaman;
 const home = document.querySelector("#home");
 const loading = document.querySelector("#loading");
@@ -169,13 +170,13 @@ function playNextChunk() {
   }
 }
 async function consumeReadingStream(person) {
-  const response = await fetch("/api/reading/stream", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(person) });
+  const response = await fetch(`${API_BASE}/api/reading/stream`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(person) });
   if (!response.ok || !(response.headers.get("content-type") || "").includes("text/event-stream")) throw new Error("나레이션 서버에 연결되지 않았어요.");
   streamAbort = new AbortController(); const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
   while (true) {
     const { value, done } = await reader.read(); buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
     const events = buffer.split("\n\n"); buffer = events.pop() || "";
-    for (const raw of events) { const event = raw.match(/^event: (.+)$/m)?.[1]; const data = raw.match(/^data: (.+)$/m)?.[1]; if (!data) continue; const payload = JSON.parse(data); if (event === "meta") startViewer({}, person); if (event === "chunk") { audioQueue.push(payload); allAudioChunks.push(payload); if (!currentChunkActive) playNextChunk(); } if (event === "done") { streamDone = true; if (!currentChunkActive) playNextChunk(); } }
+    for (const raw of events) { const event = raw.match(/^event: (.+)$/m)?.[1]; const data = raw.match(/^data: (.+)$/m)?.[1]; if (!data) continue; const payload = JSON.parse(data); if (event === "error") throw new Error(payload.message); if (event === "meta") startViewer({}, person); if (event === "chunk") { audioQueue.push(payload); allAudioChunks.push(payload); if (!currentChunkActive) playNextChunk(); } if (event === "done") { streamDone = true; if (!currentChunkActive) playNextChunk(); } }
     if (done) break;
   }
 }
