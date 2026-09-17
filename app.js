@@ -83,6 +83,18 @@ function loadVideo(videoElement, index) {
 function preloadNextVideo() {
   loadVideo(standbyVideo(), (videoIndex + 1) % videos.length);
 }
+function restartVideoSequence() {
+  clearTimeout(videoTransitionTimer);
+  videoIndex = 0;
+  activeVideo = videoLayers[0];
+  videoLayers.forEach((item, index) => {
+    item.pause();
+    item.classList.toggle("is-active", index === 0);
+  });
+  loadVideo(activeVideo, videoIndex);
+  try { activeVideo.currentTime = 0; } catch { /* video metadata is still loading */ }
+  preloadNextVideo();
+}
 function playNextVideo() {
   if (audio.paused || audio.ended) return;
   const nextIndex = (videoIndex + 1) % videos.length;
@@ -151,7 +163,10 @@ function playNextChunk() {
   audio.src = chunk.audioBase64 ? `data:${chunk.audioMimeType || "audio/mpeg"};base64,${chunk.audioBase64}` : chunk.audioUrl;
   audio.load();
   if (viewer.hidden) revealViewer();
-  else audio.play().catch(() => showControls());
+  else {
+    audio.play().catch(() => showControls());
+    activeVideo.play().catch(() => showControls());
+  }
 }
 async function consumeReadingStream(person) {
   const response = await fetch("/api/reading/stream", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(person) });
@@ -214,7 +229,7 @@ audio.addEventListener("timeupdate", updateCaption);
 audio.addEventListener("ended", () => { currentChunkActive = false; audio.removeAttribute("src"); audio.load(); playNextChunk(); });
 replayButton.addEventListener("click", () => {
   replayButton.hidden = true; audioQueue = [...allAudioChunks]; streamDone = true; currentChunkActive = false;
-  videoIndex = 0; activeVideo = videoLayers[0]; activeVideo.currentTime = 0; activeVideo.play().catch(() => showControls());
+  restartVideoSequence();
   playNextChunk();
 });
 videoLayers.forEach(item => {

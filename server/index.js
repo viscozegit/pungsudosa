@@ -31,9 +31,15 @@ function validate(input) {
   return { name, birthDate, birthTime, address };
 }
 
+async function loadNarrationPrompt(lengthInstruction) {
+  const promptPath = join(root, "docs", "narration-prompt.md");
+  const template = await readFile(promptPath, "utf8");
+  return template.replace("{{LENGTH_INSTRUCTION}}", lengthInstruction);
+}
+
 async function generateNarration(person) {
   const lengthInstruction = process.env.NARRATION_LENGTH === "short" ? "1~2문장, 약 8~12초 분량" : process.env.NARRATION_LENGTH === "medium" ? "3~4문장, 약 18~22초 분량" : "35~45초 분량";
-  const system = `당신은 카메라 앞에서 한 사람에게 직접 말하는 도사다. 입력된 이름, 생년월일, 태어난 시간, 성별, 주소를 바탕으로 ${lengthInstruction}의 자연스러운 한국어 나레이션을 작성한다. 이름은 1회 자연스럽게 부르고, 주소는 실제 지역이나 장소처럼 지칭한다. 첫 문장에서 이 장소가 잘 맞는지 또는 조심해야 하는지 명확히 판정한다. 이어서 이 장소에서 지금 해야 할 행동 하나, 절대 피해야 할 행동 하나, 운을 위해 가지고 다니거나 놓아둘 물건 하나를 구체적으로 말한다. 사용자의 성향을 한 문장으로 단정하고, 그 성향 때문에 이 장소가 왜 좋거나 나쁜지 연결한다. "기운", "흐름", "에너지", "천천히", "좋을 수 있다"처럼 두루뭉술한 말은 쓰지 않는다. 행동과 물건은 실제로 바로 할 수 있게 말한다. 실제 이론이나 근거는 설명하지 말고, 사주와 풍수를 읽은 듯 친근하지만 단호한 구어체로 말한다. 마지막 문장은 반드시 "더 듣고 싶으면 복채 내놔라."로 끝낸다. 반드시 JSON으로만 반환하며 narration 문자열 하나만 포함한다.`;
+  const system = await loadNarrationPrompt(lengthInstruction);
   const user = JSON.stringify(person);
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, "content-type": "application/json", "http-referer": "https://viscozegit.github.io/pungsudosa/", "x-title": "Pungsudosa MVP" }, body: JSON.stringify({ model: process.env.LLM_MODEL || "deepseek/deepseek-v4-flash", temperature: 0.9, messages: [{ role: "system", content: system }, { role: "user", content: user }], response_format: { type: "json_schema", json_schema: { name: "pungsu_narration", strict: true, schema: { type: "object", properties: { narration: { type: "string", minLength: 1 } }, required: ["narration"], additionalProperties: false } } } }) });
   if (!response.ok) throw new Error(`llm_${response.status}`);
@@ -49,26 +55,62 @@ function alignmentToCues(alignment, narration) {
   const chars = alignment.characters;
   const starts = alignment.character_start_times_seconds || [];
   const ends = alignment.character_end_times_seconds || [];
+  const maxCaptionChars = 20;
   const cues = [];
+  const text = chars.join("");
+  const words = [...text.matchAll(/\S+/g)];
+  let current = [];
   let startIndex = 0;
-  for (let i = 0; i < chars.length; i += 1) {
-    if (/[.!?。！？…]/.test(chars[i]) || i - startIndex > 46) {
-      const text = chars.slice(startIndex, i + 1).join("").trim();
-      if (text) cues.push({ start: starts[startIndex] ?? 0, end: ends[i] ?? starts[i] ?? 0, text });
-      startIndex = i + 1;
-    }
+
+  const addCue = () => {
+    if (!current.length) return;
+    const endIndex = current[current.length - 1].end;
+    cues.push({
+      start: starts[startIndex] ?? 0,
+      end: ends[endIndex] ?? starts[endIndex] ?? 0,
+      text: current.map(word => word.text).join(" ")
+    });
+    current = [];
+  };
+
+  for (const match of words) {
+    const word = { text: match[0], start: match.index, end: match.index + match[0].length - 1 };
+    const currentLength = current.reduce((length, item) => length + item.text.length, 0);
+    const spacing = current.length ? 1 : 0;
+
+    // 어절을 넘기기 전에 먼저 자르고, 한 자막은 최대 두 줄(약 20자)로 유지한다.
+    if (current.length && currentLength + spacing + word.text.length > maxCaptionChars) addCue();
+    if (!current.length) startIndex = word.start;
+    current.push(word);
+
+    // 문장부호가 오면 바로 끊는다. 따라서 자막은 단어와 문장 경계에서만 바뀐다.
+    if (/[.!?。！？…]$/.test(word.text)) addCue();
   }
-  const tail = chars.slice(startIndex).join("").trim();
-  if (tail) cues.push({ start: starts[startIndex] ?? 0, end: ends[chars.length - 1] ?? 0, text: tail });
+  addCue();
   return cues.filter(cue => cue.end > cue.start);
 }
 
 function splitNarration(narration) {
-  const parts = narration.match(/[^.!?。！？…]+[.!?。！？…]+|[^.!?。！？…]+$/g) || [narration];
-  const clean = parts.map(part => part.trim()).filter(Boolean);
+  // TTS 요청은 문장의 한가운데를 절대 자르지 않는다. 마침표가 없는 응답은
+  // 하나의 요청으로 유지해 부자연스러운 중간 끊김을 막는다.
+  const sentences = narration.match(/[^.!?。！？…]+[.!?。！？…]+|[^.!?。！？…]+$/g) || [narration];
+  const clean = sentences.map(sentence => sentence.replace(/\s+/g, " ").trim()).filter(Boolean);
   if (clean.length < 2) return clean;
-  const midpoint = Math.ceil(clean.length / 2);
-  return [clean.slice(0, midpoint).join(" "), clean.slice(midpoint).join(" ")];
+
+  // 두 덩어리의 길이가 너무 차이 나지 않게 하되, 분할 지점은 언제나 문장 끝이다.
+  const totalLength = clean.reduce((sum, sentence) => sum + sentence.length, 0);
+  const targetLength = totalLength / 2;
+  let firstLength = 0;
+  let splitAt = 1;
+
+  for (let index = 0; index < clean.length - 1; index += 1) {
+    const nextLength = firstLength + clean[index].length;
+    if (index > 0 && Math.abs(targetLength - firstLength) < Math.abs(targetLength - nextLength)) break;
+    firstLength = nextLength;
+    splitAt = index + 1;
+  }
+
+  return [clean.slice(0, splitAt).join(" "), clean.slice(splitAt).join(" ")];
 }
 
 async function generateVoice(narration) {
