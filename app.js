@@ -68,11 +68,22 @@ function setPaused(paused) {
   playToggle.setAttribute("aria-label", paused ? "재생" : "일시정지");
   if (paused) { audio.pause(); activeVideo.pause(); showControls(); return; }
   if (audio.src) audio.play().catch(() => showControls());
-  activeVideo.play().catch(() => showControls());
+  playActiveVideo();
   showControls();
 }
 function standbyVideo() {
   return videoLayers.find(item => item !== activeVideo);
+}
+function playActiveVideo() {
+  const video = activeVideo;
+  video.muted = true;
+  video.playsInline = true;
+  const play = () => {
+    if (video !== activeVideo || viewer.hidden || viewer.classList.contains("is-paused")) return;
+    video.play().catch(() => showControls());
+  };
+  if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) play();
+  else video.addEventListener("canplay", play, { once: true });
 }
 function loadVideo(videoElement, index) {
   if (videoElement.dataset.videoIndex === String(index)) return;
@@ -152,7 +163,7 @@ function revealViewer() {
   viewer.hidden = false;
   loading.hidden = true;
   if (audio.src) audio.play().catch(() => showControls());
-  activeVideo.play().catch(() => showControls());
+  playActiveVideo();
   showControls();
 }
 function playNextChunk() {
@@ -166,7 +177,7 @@ function playNextChunk() {
   if (viewer.hidden) revealViewer();
   else {
     audio.play().catch(() => showControls());
-    activeVideo.play().catch(() => showControls());
+    playActiveVideo();
   }
 }
 async function consumeReadingStream(person) {
