@@ -2,3 +2,5 @@
 .env
 mvp_data/
 public/
+.wrangler/
+.wrangler-dry-run/
